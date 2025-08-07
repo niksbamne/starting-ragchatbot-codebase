@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
+    newChatButton = document.getElementById('newChatButton');
     
     setupEventListeners();
     createNewSession();
@@ -28,6 +29,9 @@ function setupEventListeners() {
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
+    
+    // New chat button
+    newChatButton.addEventListener('click', startNewChat);
     
     
     // Suggested questions
@@ -122,10 +126,26 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        // Process sources to handle both old string format and new object format
+        const formattedSources = sources.map(source => {
+            if (typeof source === 'string') {
+                // Legacy format - just return as text
+                return escapeHtml(source);
+            } else if (source && source.text) {
+                // New format with potential link
+                if (source.link) {
+                    return `<a href="${escapeHtml(source.link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.text)}</a>`;
+                } else {
+                    return escapeHtml(source.text);
+                }
+            }
+            return 'Unknown source';
+        }).join(', ');
+        
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${formattedSources}</div>
             </details>
         `;
     }
@@ -144,7 +164,38 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Removed removeMessage function - no longer needed since we handle loading differently
+// Session Management Functions
+async function startNewChat() {
+    const oldSessionId = currentSessionId;
+    
+    // Clear current conversation
+    currentSessionId = null;
+    chatMessages.innerHTML = '';
+    
+    // Cleanup old session on backend if it exists
+    if (oldSessionId) {
+        try {
+            await fetch(`${API_URL}/session/cleanup`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    session_id: oldSessionId
+                })
+            });
+        } catch (error) {
+            console.log('Session cleanup error (non-critical):', error);
+            // Don't block the UI for cleanup errors
+        }
+    }
+    
+    // Create new session
+    await createNewSession();
+    
+    // Focus on input for immediate use
+    chatInput.focus();
+}
 
 async function createNewSession() {
     currentSessionId = null;

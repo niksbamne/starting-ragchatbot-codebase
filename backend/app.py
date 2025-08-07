@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union, Dict
 import os
 
 from config import config
@@ -43,13 +43,22 @@ class QueryRequest(BaseModel):
 class QueryResponse(BaseModel):
     """Response model for course queries"""
     answer: str
-    sources: List[str]
+    sources: List[Union[str, Dict[str, Optional[str]]]]
     session_id: str
 
 class CourseStats(BaseModel):
     """Response model for course statistics"""
     total_courses: int
     course_titles: List[str]
+
+class SessionCleanupRequest(BaseModel):
+    """Request model for session cleanup"""
+    session_id: str
+
+class SessionCleanupResponse(BaseModel):
+    """Response model for session cleanup"""
+    success: bool
+    message: str
 
 # API Endpoints
 
@@ -72,6 +81,25 @@ async def query_documents(request: QueryRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/session/cleanup", response_model=SessionCleanupResponse)
+async def cleanup_session(request: SessionCleanupRequest):
+    """Clean up a session and its associated data"""
+    try:
+        session_id = request.session_id
+        
+        # Clean up the session using the session manager
+        rag_system.session_manager.clear_session(session_id)
+        
+        return SessionCleanupResponse(
+            success=True,
+            message=f"Session {session_id} cleaned up successfully"
+        )
+    except Exception as e:
+        return SessionCleanupResponse(
+            success=False,
+            message=f"Error cleaning up session: {str(e)}"
+        )
 
 @app.get("/api/courses", response_model=CourseStats)
 async def get_course_stats():
