@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(kill:*)",
+      "Bash(./run.sh)",
+      "Bash(source:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_install",
+      "Bash(mkdir:*)",
+      "Bash(uv run:*)",
+      "Bash(cat:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git worktree:*)",
+      "Bash(find:*)",
+      "Bash(git merge:*)",
+      "Bash(uv lock:*)",
+      "Bash(rm:*)",
+      "Bash(git branch:*)"
+    ],
+    "deny": []
+  }
+}
